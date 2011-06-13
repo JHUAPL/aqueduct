@@ -1,0 +1,360 @@
+<html><body>
+
+<h3><a name="AqueductDocumentation-1.2-Includingwidgetsinanotherpage%26nbsp%3B"></a>Including widgets in another page&nbsp;</h3>
+
+<p>Note that the above setup only allows the widgets to display data associated with the page where they are placed. This means that all widgets on the page will be displaying the same data. Because this is not always desirable, the user can insert the aqIncludeWidgets tag, which includes widgets from other pages (which will be display different data.)</p>
+
+<p>To use this tag, specify the title of the page with the widgets that you want to include like this: &lt;aqIncludeWidgets&gt;Namespace:PageTitle&lt;/aqIncludeWidgets&gt;. All the widgets on the specified page will be inserted in place of the inclusion tag. They will be rendered exactly as they appeared in the page that is being included, with the same data that would have appeared when directly navigating to that page.</p>
+
+<p>The aqIncludeWidgets tag can be used recursively to build "building blocks" that will include several widgets from multiple sources. The aqIncludeWidgets tag will behave in the same way when used recurisvely &#45;&#45; whatever widgets appear on the included page will also appear in the page that uses the tag, regardless of where the widgets originally came from.</p>
+
+<p>Mediawiki templating (using the {} curly braces) will not behave as expected because the widget tags will be considered part of the including page, and they won't use the data of the page where they appeared. However, using templates can still be useful because commonly used collections widget tags can be "aliased" as a template to make them easier to type.</p>
+
+<h3><a name="AqueductDocumentation-1.2-Combiningdatafrommultiplesources"></a>Combining data from multiple sources</h3>
+
+<p>The feature above allows you to display several widgets on a page with different data in each, but they still don't allow you to combine data from multiple entities or queries into one widget.</p>
+
+<p>To do this, use the aqAddData tag, which takes all RDF data from the specified entity and causes it to be "merged" with the current entity. Although the data is not modified in Blackbook, this feature causes Aqueduct to treat the two entities as one. As far as Aqueduct is concerned, the specified data becomes a part of the entity corresponding to the page where you used the aqAddData tag.</p>
+
+<p>To use the aqAddData tag, use the following syntax: &lt;aqAddData&gt;Namespace:PageTitle&lt;/aqAddData&gt; . Note that the specified wiki page need not exist, as long as there is semantic data associated with the page title. The aqAddData tag can also be used recursively.</p>
+
+<p>Note that, unlike with the aqIncludeWidgets tag, the aqAddData tag also affects the behavior of the API, and API consumers will see the merged data. Also note that aqAddData can be used to include queries (advanced RDF source pages) as well as simple RDF entities.</p>
+
+<p>There are two main use cases for the aqAddData tag:<br/>
+1. You can build a "virtual entity" by merging the data from several other entities together and treating it as one. To do this, create a page with several aqAddData tags on it. The page should be outside of an Aqueduct namespace (there shouldn't be any semantic data associated with the page until you add the aqAddData tags.) This "virtual entity" can then be used in the same way as any other entity &#45;&#45; you can put widgets on it, include the widgets in other pages by using aqIncludeWidgets, and even recursively merge the virtual entity into other pages by using the aqAddData tag again.</p>
+
+<p>2. You can "augment" the data for an entity by including other data that you know is relevant to it. To do this, browse to the page for an entity and use aqAddData to include the data that is deemed relevant. At this point, any other pages that use aqIncludeWidgets or aqAddData to reference the entity will also see the data that you associated.</p>
+
+<h3><a name="AqueductDocumentation-1.2-Embeddingdatainthewiki%28wikiasadatasource%29"></a>Embedding data in the wiki (wiki as a data source)</h3>
+
+<p>It is often useful to store RDF data directly in the wiki, allowing the wiki to act as a both a datasource and a data display system.</p>
+
+<p>Aqueduct provides functionality allowing the user to embed RDF triples in a special namespace, with wiki pages representing entities (in the same way that page represent entities when querying other datasource). When Aqueduct needs to materialize an entity, it scans the corresponding page for triples and returns them.</p>
+
+<p>This functionality is distinct from any Semantic Mediawiki support Siphon provides. Embedding triples with Semantic Mediawiki requires the user to have a copy of Semantic Mediawiki and a Blackbook instance to receive the triples. In this case, Aqueduct queries Blackbook for the desired entities, instead of reading the wiki pages.</p>
+
+<p>Using the Semantic Mediawiki and Siphon approach has the advantage of enabling advanced queries and the use of any algorithm that Blackbook supports. The Embedded Data support being discussed in this section does not support algorithms or advanced queries.</p>
+
+<p>The advantage of the Embedded Data support discussed here is that neither Semantic Mediawiki or Blackbook is required. Also, the semantic data is available instantly, without waiting for Siphon to process it.&nbsp;</p>
+
+<p>To embed triples in the wiki, create an RDF source with a datastore type of "Embedded" and choose a datastore URI prefix. Aqueduct will then allow you to embed triples in this namespace. The subject of the triples are implied by the datastore URI prefix and the page title where the triples are placed, while the predicate and object are specified explicitly.</p>
+
+<h4><a name="AqueductDocumentation-1.2-Basictripleembedding"></a>Basic triple embedding</h4>
+
+<p>To embed a triple into a wiki page in a namespace that was set up for triple embedding, use the following syntax:</p>
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java">{{#triple:predicateuri|object|objecttype}}</pre>
+</div></div>
+<p>"predicate" is the predicate URI for the embedded triple. "objecttype" is "literal" or "uri". "object" is the object of the embedded triple.<br/>
+
+You can also create templates (or parameterized templates) that call the "triple" tag. When the user embeds this template into their wiki page, it will add the triple(s) present in the template. This allows you to define your own syntax that users can use to embed triples into wiki pages. Because the default syntax is non-intuitive, creating customized triple templates is the way that this feature was intended to be used.</p>
+
+<h4><a name="AqueductDocumentation-1.2-Advancedtripleembedding"></a>Advanced triple embedding</h4>
+
+<p>It is also possible to embed a triple on a page that doesn't correspond to the URI of the triple. This allows you to have a single wiki page that contains triples that refer to different entities, possibly making maintenance of the data easier.</p>
+
+<p>For this to work, your URIs must be constructed as follows:</p>
+<ol>
+	<li>All of the URIs should contain a "common prefix", followed by a hash mark, and then a suffix that distinguishes them.</li>
+	<li>The URIs should only have a single hash mark each.</li>
+
+	<li>The URIs should be associated with a basic RDF source of the "embedded" type, where the "Datasource URI prefix" some prefix of the "common prefix".</li>
+	<li>Triples should be stored on a wiki page in the appropriate namespace, with the title of the page constructed so the page's URI equals the "common prefix". This page will be called the "base page".</li>
+	<li>Triples for each subject can be viewed on "fragment pages", which have wiki titles that correspond to the URIs of the subjects. Note that because hash marks are translated into backslashes () when constructing wiki title, all fragment pages will have a backslash somewhere in the title.</li>
+	<li>Triples can also be embedded on the fragment pages themselves. Triples from the base page and triples from the fragment pages will be merged when retrieving data for the fragment pages.</li>
+	<li>The "Search for Fragments" parameter must be set to 1 in the configuration page. Otherwise, the base page will not be checked when viewing the fragment page.</li>
+</ol>
+
+<p>The syntax for advanced triple embedding is as follows:</p>
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java">{{#triple:predicateuri|object|objecttype|fragment}}</pre>
+</div></div>
+<p>Where "fragment" matches everything that comes after the hash mark in the URI that is to be represented. (Note that this syntax should only be used on the base page, and the basic triple embedding syntax should be used on the fragment pages.</p>
+
+<p>An example:</p>
+
+<p>Create an RDF source with settings: name "EmbedTest", URI prefix "uri:embedded:", type "Embedded", search for fragments "1", title initial lowercase "0".<br/>
+Create a page called "EmbedTest:People". Add</p>
+
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java">{{#triple:uri:embedtest:firstname|Jeff|literal|jeff}}</pre>
+</div></div>
+<p>Create a page called&nbsp; "EmbedTest:People\jeff". Put a table widget on the page. The "firstname" triple created on the base page will appear.</p>
+
+<h3><a name="AqueductDocumentation-1.2-AdvancedRDFsources%26nbsp%3B"></a>Advanced RDF sources&nbsp;</h3>
+
+<p>You can also defined "Advanced RDF sources" and associate them with Mediawiki namespaces. This allows you to create wiki pages that are associated with the results of more complex queries or algorithm executions.</p>
+
+<p>To configure an Advanced RDF source, you must fill in the following columns:</p>
+
+<ul>
+	<li>New Namespace ID: An unused namespace ID, using the same naming convention as above</li>
+	<li>Associated namespace: A string that must match a "Wiki Namespace" entry in the other configuration table. This tells Aqueduct where the advanced query should be run. Also, the Datastore URI prefix of the associated namespace will be used when a paramaterized query is performed and the Use URI as Query Parameter option is set.</li>
+	<li>Query Tag: A string that will be used to generate the namespace that is associated with this RDF source. The new namespace name will be the Associated namespace name, followed by an underscore, followed by the query tag.</li>
+	<li>Query Type: This is a datasource-dependent property specifying what kind of query should be performed. The legal value for Blackbook is ExecuteAlgorithm</li>
+	<li>Algorithm Name: This is a datasource-dependent property specifying which query should be performed. Legal values for Blackbook are LuceneKeyword, SparqlConstructQuery, SparqlDescribeQuery, SparqlSelectQuery</li>
+	<li>Datasource Name: If an algorithm needs the name of a datasource to execute, the specified datasource is used.</li>
+
+	<li>Use URI as Query Parameter: When a parameterized query is performed, put 1 here to treat the parameter as a URI and 0 to treat the parameter as a literal.</li>
+	<li>Query Text: Put the text for the SPARQL query or the keyword query here. Parameter placeholders can be placed here (see below). As a convenience, if this is left blank, the title of the page (without the namespace) will be inserted at runtime.</li>
+</ul>
+
+
+<h3><a name="AqueductDocumentation-1.2-MoreonnamespacesandRDFsources%26nbsp%3B"></a>More on namespaces and RDF sources&nbsp;</h3>
+
+<p>Mediawiki internally uses the Namespace ID of a page when storing pages in the database, but links to pages (and other cached information) uses the namespace name. For this reason, it is important that once pages have been created within a particular namespace, the ID of that namespace continues to refer to the same namespace name until all pages in the namespace have been deleted.</p>
+
+<p>When you define a namespace as a basic or advanced RDF source, Aqueduct will automatically set up the corresponding Mediawiki namespace so wiki pages can be named. If you remove the basic or advanced RDF source at a later date, and if the RDF source already contains pages, Aqueduct will maintain a memory of the namespace, and continue to maintain the namespace even though it no longer corresponds to an RDF source, in order to prevent previously created pages from becoming accessible.</p>
+
+<p>For this reason, if you create a namespace with a particular namespace ID or name, and later delete the namespace after creating pages in it, Aqueduct will no longer allow you to create another RDF source with the same namespace ID or name, unless BOTH the namespace ID and name match the previous ones.&nbsp;</p>
+
+<h3><a name="AqueductDocumentation-1.2-Parameterizedqueries%26nbsp%3B"></a>Parameterized queries&nbsp;</h3>
+
+<p>The double hash mark (##) is used as a placeholder for a parameter in the "query text" for an advanced RDF source. This allows you to define an entire namespace of queries, where each page represents one value that the parameter could take on.</p>
+
+<p>If "Use URI as Query Parameter" is set to 0, the placeholder is replacedwith the title of the page (unescaped, and minus the namespace). If it's set to 1, the title is converted to a URI (for this purpose, it is assumed to be in the Associated Namespace of the Advanced RDF Source), and then the URI is used instead of the placeholder.</p>
+
+<h3><a name="AqueductDocumentation-1.2-Manuallyspecifyinginlinequeriesforwidgets"></a>Manually specifying inline queries for widgets</h3>
+
+<p>It is sometimes useful to explicitly specify SPARQL queries (or similar queries) on the same page where the query will be used, instead of specifying them in the advanced namespace configuration. Aqueduct has an &lt;aqAddQuery&gt; tag that allows this.</p>
+
+<p>A query added with the &lt;aqAddQuery&gt; tag has several characteristics:</p>
+<ol>
+	<li>In the tag's parameters, the user enters the same information that would be entered when configuring an advanced RDF source. This causes the current page to function as if it was part of an advanced RDF namespace.</li>
+	<li>If the page is already part of a basic or advanced RDF source, the results of the query will be merged with the page's other data, in the same way that the aqAddData merges triples.</li>
+	<li>If one page draws data from an aqAddQuery tag, the aqAddData tag can include the resulting data from another page. In short, the aqAddData tag still works as expected.</li>
+	<li>If the aqAddQuery page is used in a template, the query will only be performed after the template is expanded, allowing you to create templates that represent commonly-used queries.</li>
+
+	<li>A parameterized query can still be performed when the query is defined with the aqAddQuery tag. For the purposes of the query, Aqueduct acts as if a new implicit advanced RDF namespace has been created, and the page being rendered is part of this implicit namespace. The page name can then be used to fill in a query parameter.</li>
+</ol>
+
+
+<p>The aqAddQuery tag has the following parameters. All parameters should be specified:</p>
+<ul>
+	<li>namespace: Corresponds to the "Associated namespace" of an advanced RDF source.</li>
+	<li>type: Corresponds to the "Query Type" of an advanced RDF source.</li>
+	<li>datasource: Corresponds to the "Datasource Name" of an advanced RDF source.</li>
+
+	<li>uriasparam: Corresponds to the "Use URI as Query Parameter" of an advanced RDF source.</li>
+	<li>algorithm: Corresponds to the "Algorithm Name" of an advanced RDF source.</li>
+	<li>The query itself should be put inside the &lt;aqAddQuery&gt;&lt;/aqAddQuery&gt; tags. This corresponds to the "Query Text" of an advanced RDF source.</li>
+</ul>
+
+
+<h3><a name="AqueductDocumentation-1.2-AqueductPageAutoPopulation"></a>Aqueduct Page Auto-Population</h3>
+
+<p>When following links to wiki pages that have a known mapping to a URI but do not yet exist, it is useful to be able to view the data for the URI without having to create a page with an Aqueduct widget on it every time. For this purpose, Aqueduct provides an auto-population utility.</p>
+
+<p>This utility automatically activates if a link is followed to a wiki page that both does not exist and resides in a namespace configured through Aqueduct. If these two conditions are met, the utility searches for a Mediawiki template page to use to auto-populate the page. This template is chosen through a specific naming convention. There are two ways to configure auto-population: generically and specifically. If the page already exists, or if the page is in a namespace that is not configured by Aqueduct, then Mediawiki continues normally.</p>
+
+<p>The generic configuration will be used to auto-populate any page that is created in an Aqueduct namespace. To configure this, a Mediawiki template must be created with the name "Template:Namespace", where "Namespace" is the namespace name you wish to auto-populate. Afterwards, any page created that has the name "Namespace:Page_Title", will be prepopulated with the contents of "Template:Namespace".</p>
+
+<p>The specific configuration refers to the RDF type of the uri which a page maps to. It will be used to auto-populate any page created in an Aqueduct namespace that matches a given RDF type. To configure this, a Mediawiki template must be created with the name "Template:Namespace:Entity", where "Namespace" is the namespace name and "Entity" is the RDF type of the pages you wish to prepopulate. Multiple specific configurations can be created for multiple RDF entities within a single namespace.</p>
+
+<p>If both a generic and a specific configuration exist for a namespace, then the specific configuration takes priority, but only when the RDF type matches. If only specific configurations exist for a namespace, then any page not matching a configuration will be treated as a normal Mediawiki page.</p>
+
+
+<h3><a name="AqueductDocumentation-1.2-Gridlayoutmode"></a>Grid layout mode</h4>
+
+<p>By default, Aqueduct does not affect the layout of ordinary wiki pages. Widgets appear on wiki pages wherever the corresponding tags are placed. Optionally, the system administrator can enable grid layout mode, in order to change the page layout.</p>
+
+
+<p>When Aqueduct is switched to grid mode, all wiki pages are laid out in a "window pane" mode, similar to how Visual Studio or Eclipse display multiple views inside a single window. The screen is divided into up to 5 panes &#45;&#45; center, west, east, north, and south. These panes can be further subdivided in order to display any number of panes on the screen. Each pane will display exactly one widget, except for the pane that displays the ordinary wikitext. In grid mode, the location of the widget tags within the wikitext becomes irrelevant, because widgets are removed from the normal flow of wikitext and placed into their own grid panes.</p>
+
+<p>To enable grid mode, you must perform the following steps:</p>
+<ol>
+	<li>Copy or link GridBook.php from the AqueductExtension directory to the wiki's "skins" folder.</li>
+	<li>Edit LocalSettings.php and set $wgDefaultSkin = 'gridbook'</li>
+
+</ol>
+
+
+<p>After following these steps, every page in the wiki will switch to the grid mode.</p>
+
+<p>If no further change are made, Aqueduct will automatically choose grid panes and place the widgets and wikitext inside them. This will not be desirable in most cases, and most users will want to manually specify the location and size of the widget panes. The following parameter can be passed to any widget, in order to influence how the widget is rendered:</p>
+<ul>
+	<li>position: This parameter specifies which grid pane the widget will be drawn in. Valid entries include "north", "south", "west", "east", and "center". To subdivide a grid pane and create a complex layout, specify a path of panes. For example, "north-east" will subdivide the north pane and place the widget in the east subdivision. "center-north-west" will perform multiple subdivisions. Certain combinations on widget positions are illegal and will cause page views to fail with an error if attempted. For example, if one widget is set to "west" and the other is set to "north", the page will fail because this would leave a gap in the grid. However, adding a third widget with a position of "center" will allow the page to load, because the entire screen will be filled with grid panes. The same restrictions apply to subdivided grids</li>
+	<li>height and width: This parameter specifies the preferred height or width of the widget. The following entries are possible:
+	<ul>
+		<li>(blank or omitted): The height or width of this widget is not important. This widget will receive whatever space is left after displaying the other widgets.</li>
+
+		<li>"fit": The height or width of this widget is dynamically determined by measuring the size of the content that the widget contains, causing the widget to "auto-size" to fit its contents. Note that with some widgets, the height and width are dependent on each other (for example, reducing the width will cause word-wrap which increases the height). With such widgets, it is recommended that either the height or the width be set to a fixed pixel size, to avoid unexpected results.</li>
+		<li>(a number): The height or width of this widget is fixed to the specified number of pixels. Note that the dividers between panes will cause the actual size of the pane to be larger than the number entered here. Also, if it is impossible to accommodate all widgets using the provided sizes, the actual size may be less than specified.</li>
+	</ul>
+	</li>
+	<li>resizable: Set this to "true" to allow the pane to be resized by the user after the grid has displayed. Note that setting this property for the center pane has no effect, because the center pane has no resizing bars. The four resizing bars on a standard grid view belong to the north, south, west, and east panes.</li>
+</ul>
+
+
+<p>On pages where widgets are displayed, the position of the wikitext pane must also be specified. To specify this, add the &lt;aqWikiText/&gt; widget to the page, and then specify the position and size of the widget as normally done. Only one &lt;aqWikiText/&gt; widget may be added to a page at once, and this widget has no effect when the grid layout mode is turned off.</p>
+
+
+<p>When using the grid layout mode, watch out for the following:</p>
+<ul>
+	<li>If a widget's design is incompatible with the grid layout mode, the content of the widget might not resize to fit the pane that contains it.</li>
+	<li>If pane resizing is enabled ("resizable" is set to "true"), unexpected results may occur when using some widgets when the user resizes the pane. Ensure proper functionality in all scenarios before deploying a page where resizing is enabled.</li>
+	<li>If the user's window is too small to accommodate all of the panes on the page, an alert box will appear notifying the user that some widgets or data may not be visible. This normally happens if panes are nested too deeply.</li>
+	<li>The grid layout mode may not work properly when using Internet Explorer. It has only been tested with Firefox 3.</li>
+
+	<li>If the browser window is resized while a grid layout is displayed, the grid will resize along with the browser window, but many errors will appear in the browser's error console. These errors can be ignored. The user will not normally see these errors if they are not using a debugging plugin in their browser.</li>
+</ul>
+
+<h3><a name="AqueductDocumentation-1.2-CustomizingAqueductpages%26nbsp%3B"></a>Customizing Aqueduct pages&nbsp;</h3>
+
+<p>Aqueduct has several features that allow users to embed custom widgets in pages or add custom Javascript to pages. This can be used to create new and customized views of data, or to add Javascript functionality that is not associated with a particular widget.</p>
+
+<p><em>Allowing use of these functions may be a security risk.</em> These features are disabled by default because malicious users are allowed to use them, which allow arbitrary HTML and Javascript to be injected into pages that ordinary users see, potentially allowing passwords or other information to be stolen. (When these features are disabled, Aqueduct is designed to foil such attacks.)</p>
+
+<p>To allow the use of the aqLayoutWidget tag, set the $wgEnableLayoutWidgets = TRUE; configuration option in LocalSettings.php.</p>
+
+<p>To allow the use of custom headers and scripts, set the $wgEnableCustomScripts = TRUE; configuration option in LocalSettings.php.</p>
+
+<h4><a name="AqueductDocumentation-1.2-Customdatalayouts"></a>Custom data layouts</h4>
+
+<p>Custom data layouts allow users to display RDF data in their own format, without using any of the built-in widgets (such as the table widget or network view widget). This essentially has the effect of creating a custom widget, although creating a custom layout affords less functionality than writing a full-fledged widget.</p>
+
+<p>Using a custom data layout is a two-step process. First, add a aqLayout tag which contains the layout definition. Then, add a aqLayoutWidget tag to actually construct a widget that uses that layout definition to display the data. Layout definitions do not specify the data to be displayed (this is specified in the usual way) &#45;&#45; they only specify how to display it.</p>
+
+<p>It is recommended that the aqLayout and aqLayoutWidget tags be used in pairs, and that they be placed inside a Mediawiki template. This allows users to easily insert the custom widget onto pages as if it was an ordinary widget. Because the aqLayoutWidget tag automatically uses the layout from the last aqLayout tag that was included, it is possible to put the aqLayout and aqLayoutWidget tags in different places, and then use Mediawiki templates or widget inclusion to ensure that the aqLayoutWidget tag is processed after the corresponding aqLayout tag. However, this usage is confusing.</p>
+
+<h4><a name="AqueductDocumentation-1.2-Thecustomdatalayouttemplatinglanguage"></a>The custom data layout templating language</h4>
+
+<p>Aqueduct data layouts are written in the jtemplates language. Documentation on the language can be found here: <a href="http://jtemplates.tpython.com/">http://jtemplates.tpython.com/</a></p>
+
+<p>Templates are written by interspersing HTML with templating directives. Most templating directives either (1) cause the HTML parser to "loop" and repeat an element for each record, or (2) insert the value of a field in place of the directive.</p>
+
+<p>The following directives will be useful to the template author:</p>
+
+<p>Begin a foreach loop, looping through each result entity (subject).</p>
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java">{#foreach $T as record}</pre>
+</div></div>
+<p>End the foreach loop</p>
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java">{#/<span class="code-keyword">for</span>}</pre>
+
+</div></div>
+<p>Insert an href tag which causes a link to the current entity to be created (note: jtemplates incorrectly htmlencodes the link, meaning that the link will not work if your wiki URL contains an ampersand for some reason.)</p>
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java">&lt;a href='{$T.record.mylink}'&gt;</pre>
+</div></div>
+<p>Inserts the wiki title of the current entity</p>
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java">{$T.record.myvalue}</pre>
+</div></div>
+<p>Inserts object that the current entity has for predicate "uri:mypredicate"</p>
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java">{$T.record['uri:mypredicate'].value}</pre>
+
+</div></div>
+<p>Inserts a link to the wiki page for the current entity's object for predicate "uri:mypredicate" (this only makes sense if the object is a uri.)</p>
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java">&lt;a href='{$T.record['uri:mypredicate'].value}'&gt;</pre>
+</div></div>
+<p>If the desired predicate has multiple values, you should always use the following looping forms to ensure that the expected results are seen:</p>
+
+<p>Begins looping through all values for predicate "uri:mypredicate" for the current entity.</p>
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java">{#foreach $T.record['uri:cityschema:HasNeighbor'].all as n}</pre>
+</div></div>
+<p>Inserts the wiki link or object value for the current object when looping through predicate values</p>
+
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java">&lt;a href='{$T.n.link}'&gt;
+{$T.n.value}</pre>
+</div></div>
+
+<h4><a name="AqueductDocumentation-1.2-Exampleofacustomdatalayouttemplate"></a>Example of a custom data layout template</h4>
+
+<p>The following example applies a custom layout to data from the built-in Test RDF source that was described previously.</p>
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java">&lt;aqLayout&gt;
+&lt;strong&gt;CITY INFORMATION LIST  &lt;/strong&gt;
+
+&lt;ol&gt;
+   {#foreach $T as record}
+   &lt;li&gt;
+   &lt;ul&gt;
+   &lt;li&gt;
+   City name: &lt;a href='{$T.record.mylink}'&gt;{$T.record.myvalue}&lt;/a&gt;
+
+   &lt;/li&gt;
+   &lt;li&gt;
+   Population: {$T.record['uri:cityschema:Population'].value}
+   &lt;/li&gt;
+   &lt;li&gt;
+   List of neighbors:
+   &lt;ol&gt;
+
+      {#foreach $T.record['uri:cityschema:HasNeighbor'].all as n}
+      &lt;li&gt;&lt;a href='{$T.n.link}'&gt;{$T.n.value}&lt;/a&gt;&lt;/li&gt;
+      {#/<span class="code-keyword">for</span>}
+   &lt;/ol&gt;
+   &lt;/li&gt;
+
+   &lt;/ul&gt;
+   &lt;/li&gt;
+   {#/<span class="code-keyword">for</span>}
+&lt;/ol&gt;
+&lt;/aqLayout&gt;
+&lt;aqLayoutWidget/&gt;</pre>
+</div></div>
+
+<h4><a name="AqueductDocumentation-1.2-Customheaders"></a>Custom headers</h4>
+
+<p>The aqAddHeader tag allows users to include arbitrary Javascript files in pages. The Javascript file will be included as in "script src" on the top of the tag. This can be used to include libraries that Javascript code embedded in custom layouts will call.</p>
+
+
+<p>To include a custom header, add a tag like this:</p>
+
+<p>&lt;aqAddHeader&gt;<a href="http://host/file.js">http://host/file.js</a>&lt;/aqAddHeader&gt;&nbsp;</p>
+
+<h4><a name="AqueductDocumentation-1.2-Customscripts"></a>Custom scripts</h4>
+
+<p>The aqAddScript tag is similar to the aqAddHeader tag, but the Javascript is added literally instead of being included from another file. The script will be placed in the head of the HTML file.</p>
+
+<p>To include a custom script, add a tag like this:</p>
+
+<p>&lt;aqAddScript&gt;</p>
+
+<p>alert('hello');&nbsp;</p>
+
+<p>&lt;/aqAddScript&gt;</p>
+
+<h3><a name="AqueductDocumentation-1.2-TheBlackbookMemcachedcache"></a>The Blackbook Memcached cache</h3>
+
+<p>Sometimes, when Blackbook as an RDF source, it is desirable to cache the results of Blackbook queries in a faster database to improve performance. Aqueduct supports the use of Memcached, a 3rd-party caching server, to cache the results of these queries. All queries will be cached if this feature is enabled (basic and advanced operations.)</p>
+
+<p>To enable this caching:</p>
+
+<p>1. Install the memcached, zlib1g (for compression), and php5-memcache packages.</p>
+
+<p>2. Restart your webserver to finalize the installation of the php memcache class.</p>
+
+<p>3. Place these three configuration lines in the LocalSettings.php file:</p>
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java">$aqMemcacheHost = 'localhost';
+$aqMemcachePort = '11211';
+$aqMemcacheExpirationTime = 600;</pre>
+</div></div>
+<p>The third line controls how long a key sits in the cache before expiring. The value is in seconds and cannot be over 30 days. If the value IS over 30 days, memcached will treat it as a Unix timestamp.</p>
+
+<p><em>The risks of this caching should be carefully considered before enabling it.</em> Using this caching might introduce the following issues:</p>
+
+<ul>
+	<li>If Siphon or the Set API is used to modify the data in Blackbook or add new data to Blackbook, the data in the cache will become out of date, and inaccurate results will be returned. The same problem will occur if the Blackbook data is being modified by other means.</li>
+	<li>If users have different security roles (defined by their SSL certificates), users who have one role will be able to see data from users of other roles, because the first user to access the data will cache it, and subsequent users will see the cached data.</li>
+	<li>For some queries, the user will be able to perform the query without using HTTPS (unless Apache is configured to require it) because the Blackbook call can be skipped.</li>
+	<li>Information in the cache is stored without encryption. Any local user can read the data, and any remote user with access to the Memcache port can do the same.</li>
+	<li>If the query cache and the Memcached RDF source are being used at the same time, in some circumstances a carefully constructed query could allow data in the query cache to be read through the Memcached RDF source. This is because both data sets are stored on the same server in the same namespace.</li>
+</ul>
+
+
+<h3><a name="AqueductDocumentation-1.2-TheMemcachedRDFsource"></a>The Memcached RDF source</h3>
+
+<p>The Memcached RDF source is similar to the Test RDF source, except instead of using hardcoded data, it reads the test data from a Memcached in-memory database. Note that this does not provide any functionality for caching query results from other RDF sources. In other words, Memcached is not being used for its traditional purpose &#45;&#45; this functionality is only to assist the prototyping of applications when the actual RDF store cannot be accessed.</p>
+
+<p>To use this functionality, set the aqMemcacheHost and aqMemcachePort global variables in LocalSettings.php to the appropriate values. Create an RDF source with a datastore type of "Memcached", and the appropriate wiki namespace ID, wiki namespace, and datastore URI prefix. The data in the Memcached datatore must be encoded in N-Triples format and keyed by URI (with one entity per cache entry).</p>
+
+<p>Be warned that enabling the Memcached data source will also enable the Blackbook Cache described above, because the same parameters will be used to enable both.</p>
+</body></html>

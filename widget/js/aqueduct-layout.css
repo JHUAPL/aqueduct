@@ -1,0 +1,29 @@
+  .ui-layout-pane { /* all 'panes' */
+                background: #FFF;
+                border: 1px solid #BBB;
+                padding: 10px;
+                overflow: auto;
+        }
+
+        .ui-layout-content {
+                padding:        10px;
+                position:       relative;
+                overflow:       auto;
+        }
+
+
+        .ui-layout-resizer { /* all 'resizer-bars' */
+                background: #DDD;
+        }
+
+        .ui-layout-toggler { /* all 'toggler-buttons' */
+                background: #AAA;
+        }
+        #gridContainer{
+                padding:        0;
+                margin:         0 auto;
+        }
+        .pane {
+                /*display:        none;*/
+				/* will appear when layout inits */
+        }

@@ -1,0 +1,14 @@
+<html><body>
+
+<h3><a name="AqueductDocumentation-1.2-TheAqueductAPI"></a>The Aqueduct API</h3>
+
+<p>When the Aqueduct extension is installed, a Mediawiki API is installed along with it. This Mediawiki API allows external data consumers to query any semantic data that is accessible through the wiki.</p>
+
+<p>Instead of directly working with RDF sources, the API acts as a "lens" that maps multiple RDF sources into a single wiki. Therefore, all queries are performed using wiki page titles (instead of directly providing URIs and datasource names.)</p>
+
+<p>The API is invoked from the api.php file that is built into Mediawiki with the "aqueduct" API action. The API has one parameter ("subject") which should equal the title of the page that is being queried. The API will retrieve all semantic data associated with that page and return it as a JSON object. The JSON object will be an object with one property. The name of the property will be the title of the page that was queried, and the value will be an RDF-JSON object representing the RDF that was returned. Read the <a href="http://n2.talis.com/wiki/RDF_JSON_Specification">RDF-JSON specification</a> for more details.&nbsp;</p>
+
+<p>There is also a "set" operation that allows you to modify individual triples in Blackbook. The "subject" parameter receives the subject of the triple that will be modified. If "subjecttype" is omitted or set to "page", "subject" should be a wiki page title (as above), while if "subjecttype" is set to "uri", the subject should be an RDF URI. Note that even if "subjecttype" is set to "uri", the URI must still correspond to a page in the wiki, so Aqueduct will know which server should store the URI. "predicateURI" is the predicate of the triple. "object" is a URI or a literal. "objecttype" should be the string "literal" or "uri" to represent the type of the object. The set operation will work on the datasource corresponding to the "Datastore Name" of the RDF source. The entire RDF entity will be materialized, all statements with a predicate matching the given predicate will be removed, the triples will be added, and the entity will be committed to Blackbook. Be warned that, depending on your datasource, triples with special reification (such as "role") could lose their reification during the set operation. If you are using these reified properties in your application, thoroughly test all reification scenarios with the set API.</p>
+
+<p>For the set to work, the datasource must be an assertions datasouce, created as described in the Siphon section below. (The same Blackbook API call is used to persist data here and in Siphon.)&nbsp;</p>
+</body></html>

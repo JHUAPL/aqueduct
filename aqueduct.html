@@ -1,0 +1,106 @@
+<html><body>
+
+<h2><a name="AqueductDocumentation-1.2-TheAqueductextensionforMediawiki"></a>The Aqueduct extension for Mediawiki</h2>
+
+<p>The Aqueduct extension for Mediawiki provides several services. The extension allows the administrator to define a mapping between wiki pages and URIs. The administrator must also specify where the data for the URIs is located and how it can be retrieved.</p>
+
+<p>The Aqueduct extension allows for the creation of wikis where users visualize, analyze, discuss, and enhance semantic data. In a way, the wiki acts as a "lens" into semantic data. This semantic data typically resides outside of the wiki, and can be scattered across multiple datasources and servers. The extension does not copy any data into the wiki; instead, it dispatches requests for external semantic data to the proper server and datasource.</p>
+
+<p>Because data can be scattered across multiple datasources and servers, Aqueduct introduces the concept of "RDF sources". An "RDF source" defines how the triples for a collection of data can be retrieved, and how the URIs for the data can be mapped into the wiki.</p>
+
+<p>To ensure that semantic data can be located unambiguously, Aqueduct defines a mapping between the titles (or "name") of wiki pages and the URIs that they describe. Therefore, the set of possible titles must be partitioned up such that any given title is associated with no more than one URI and RDF source. This is done by associating Mediawiki namespaces with Aqueduct RDF sources. Mediawiki namespaces allow two pages with the same title to be created, as long as they are in different namespaces. By associating RDF sources with namespaces, the same title can be used to describe several URIs, as long as each URI ends up in a different namespace.</p>
+
+<p>This extends the "lens" analogy &#45;&#45; the wiki acts as a lens into multiple sources of semantic data, and these sources are "projected" into the wiki, in a manner such that they do not overlap.</p>
+
+
+<h3><a name="AqueductDocumentation-1.2-UnderstandingRDFSources"></a>Understanding RDF Sources</h3>
+
+<p>RDF sources are a key concept in Aqueduct because all data manipulated in Aqueduct flows from an RDF source.</p>
+
+<p>Aqueduct allows users to place data visualization widgets in wikis in order to visualize RDF data. Aqueduct allows different widgets to simultaneously visualize RDF data that comes from several sources. Data can reside on an external server, on the same server as the wiki, or even within the wiki itself. Aqueduct supports the following RDF sources:</p>
+<ul>
+	<li>Blackbook: Blackbook is a server program that is capable of hosting large RDF data sets. Aqueduct can connect to a Blackbook 2.8 or Blackbook 3.0 server and visualize its data in the wiki. The Blackbook server can be on a different host than the one running Aqueduct. The best practice is to create multiple RDF sources per Blackbook server, one for each Blackbook datasource.</li>
+	<li>ARC2: ARC2 refers to a third-party RDF processing toolkit that is integrated into Aqueduct. ARC2 allows the RDF data to be stored in the same database as the wiki pages. When an ARC2 datasource is set up and used, ARC2 will create tables in the wiki database to store the desired RDF. RDF data can be ingested through Aqueduct's "aqueductset" Mediawiki API, which becomes available upon installing Aqueduct. Multiple ARC2 datasources can share the same database tables or use different database tables, depending on the "datastore name" setting.</li>
+
+	<li>Embedded: This refers to the practice of using special Mediawiki markup to store the representation of RDF data within the wiki itself. When a query is performed, the appropriate wiki pages will be read and the data will be collected from them. No data is stored in any database, aside from being stored as part of the wiki page text. Note that the Siphon product (included with Aqueduct) performs a similar function, except data is mirrored into Blackbook so it can be queried.</li>
+	<li>Test: For testing only. A small amount of test data is built into Aqueduct, and it cannot be changed. Selecting the Test RDF Source will cause this data to be read.</li>
+	<li>Memcached: For debugging purposes only.</li>
+</ul>
+
+
+<h3><a name="AqueductDocumentation-1.2-ConfiguringtheAqueductextension"></a>Configuring the Aqueduct extension</h3>
+
+<p>To configure the Aqueduct extension, you must create RDF sources for the data that will be made available through the wiki.</p>
+
+<p>To configure an RDF source, you must fill the following columns:</p>
+<ul>
+	<li>Wiki namespace ID: Mediawiki internally uses ID numbers to define namespaces. Because every RDF source is associated with a wiki namespace, you must choose a different namespace ID for each RDF source. The namespace IDs that you choose cannot already be in use. Namespace IDs must be even numbers. For a typical wiki that doesn't define any custom namespaces other than the ones associated with Semantic Mediawiki and Semantic Forms, a safe strategy is to use IDs starting with 120, such that the IDs are 120, 122, 124, 126... Once a wiki namespace ID is configured, it must not be changed if any wiki pages were created in the namespace. Assigning a namespace ID of 0 will associate the RDF source with the wiki's main namespace (which contains all pages which are not in any other namespace.)</li>
+	<li>Wiki namespace: This is a word of your choosing that names the RDF source and namespace that you are creating. It can be changed at a later date, but doing so is not recommended because doing so can confuse users.</li>
+	<li>Datastore URI prefix: This should be the longest common prefix that URIs in this RDF source have, as long as each URI has at least 1 character after removing the prefix. If URIs in a data store have several possible prefixes, consider creating a different RDF source for every prefix. Defining a good URI prefix is strongly recommended, because Aqueduct names page titles by stripping the prefix from their associated URIs.</li>
+	<li>Datastore Type:
+	<ul>
+		<li>If the data is stored in Blackbook, enter BB28 or BB30, depending on the version</li>
+
+		<li>If the data is stored in the internal ARC2 triple store, select Arc2</li>
+		<li>If you are using the Embedded RDF source, Memcached RDF source, or Test RDF source (explained later in this document), select the appropriate option</li>
+	</ul>
+	</li>
+	<li>Datastore Name:
+	<ul>
+		<li>If the data is stored in Blackbook, this is only used if you are going to persist changes back to the datasource using the Aqueduct API (not Siphon). Enter the Blackbook datasource name that the changes will be written to.</li>
+		<li>If the data is stored in the internal ARC2 triple store, enter a short alphanumeric string to identify the database tables where the data will be stored. ARC2 will automatically create database tables to store RDF within the wiki database. RDF sources with different datastore names will be backed by different database tables.</li>
+
+	</ul>
+	</li>
+	<li>Datastore Location: If the RDF source is Blackbook, enter the base URI for the Blackbook web service here.</li>
+	<li>Datastore certificate path: If the RDF source is Blackbook, enter the pathname of the certificate (PEM) file containing the server certificate that will be used to authenticate the Blackbook web service connection. Note that this is different from the client certificate &#45;&#45; the client certificate will be sent from the user's browser when needed.</li>
+	<li>Certificate password: If the RDF source is Blackbook, this is the password that was used to encrypt the certificate file mentioned in "Datastore certificate path".</li>
+	<li>Title initial lowercase: Here, specify if the first letter of the URI fragment following the URI prefix should be lowercase by default. In other words, after stripping the URI prefix from all the URIs defined in the datasource, check the cases of the first letters of the URI fragments that remain. If the majority of the URI fragments start with an uppercase letter, enter 0. If the majority of the URI fragments start with a lowercase letter, enter 1. Entering an incorrect value here will not prevent you from using Aqueduct, but the resulting titles will contain visible control characters to compensate for the fact that Mediawiki titles must all begin with uppercase letters.</li>
+
+</ul>
+
+
+<h3><a name="AqueductDocumentation-1.2-MoreonthetestRDFsource"></a>More on the test RDF source</h3>
+
+<p>The test RDF source allows you to test Aqueduct without being connected to a Blackbook data source. SSL and browser certificates are not required. This helps ensure that the widgets are working as intended.</p>
+
+<p>The following URIs are defined in the test RDF source:</p>
+<ul>
+	<li>uri:citydata:Chicago</li>
+	<li>uri:citydata:Gary</li>
+
+	<li>uri:citydata:Skokie</li>
+</ul>
+
+
+<p>To enable the test RDF source for a namespace, create a datastore with a type of Test. The other settings can be set however you want; however, it will be easiest to access the test data if you set them as follows:</p>
+<ul>
+	<li>Wiki Namespace Id: &lt;next free namespace ID&gt;</li>
+	<li>Wiki Namespace: &lt;namespace of your choosing&gt;</li>
+
+	<li>Datastore URI prefix: uri:citydata:</li>
+	<li>Datastore Type: Test</li>
+	<li>Title initial lowercase: 0</li>
+	<li>Other settings: Blank</li>
+</ul>
+
+
+<p>If you used the above settings, you will be able to put widgets on pages called "Chicago", "Gary", and "Skokie" (in the namespace that you created).</p>
+
+<h3><a name="AqueductDocumentation-1.2-TheAqueductwidgets"></a>The Aqueduct widgets</h3>
+
+<p>Once you have the RDF sources set up for the Aqueduct extension, you can place Aqueduct widgets on wiki pages. Aqueduct widgets are potentially interactive controls that allow the user to visualize the RDF associated with a wiki page.</p>
+
+<p>To place a widget on the page, insert the name of the widget surrounded by angle brackets. For example, entering &lt;aqRawWidget&gt; or &lt;aqTableViewWidget&gt; will show the Raw RDF or the Table widget. Each widget will visualize the same data in a different way.</p>
+
+<p>Widgets have no parameters and cannot be configured. Each widget automatically displays the data for the URI associated with the wiki page where it was placed.</p>
+
+<p>The following widgets currently exist:</p>
+<ul>
+	<li>aqRawWidget - The Raw RDF widget is useful for troubleshooting. It shows the user the RDF triples returned from the query with minimal processing. This widget allows the user to select from two views &#45;&#45; the Table view shows a table listing the RDF statements, and the JSON view shows the same information in an RDF-JSON data structure.</li>
+	<li>aqTableViewWidget - The Table widget shows a table with one row for each entity and one column for each property (predicate) describing the entity.</li>
+	<li>aqNetworkViewWidget - The Network view widget shows a 3-D Google Earth globe with one pushpin for each entity that had location data associated with it. The predicates <a href="http://www.w3.org/2003/01/geo/wgs84_pos#long">http://www.w3.org/2003/01/geo/wgs84_pos#long</a> and <a href="http://www.w3.org/2003/01/geo/wgs84_pos#lat">http://www.w3.org/2003/01/geo/wgs84_pos#lat</a> must be present in the data for a pushpin to be display. Arcs are drawn between pushpins when the object URI starts with urn: or http:// , and the destination object was found in the result set.</li>
+
+	<li>aqNetworkViewWidget2D - Same as the Google Earth widget, but it uses Google Maps instead of Google Earth (so no plugin is required). Arcs between pushpins are not supported.</li>
+</ul>
+</body></html>

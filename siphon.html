@@ -1,0 +1,78 @@
+<html><body>
+
+<h2><a name="AqueductDocumentation-1.2-Siphon"></a>Siphon</h2>
+
+<p>Siphon is a software package that mirrors the semantic data in a Semantic Mediawiki wiki into one or more Blackbook datasources.</p>
+
+<p>Siphon is composed of two components &#45;&#45; the intake extension and the Blackbook feeder. The intake extension captures data from Semantic Mediawiki and outputs it to a queue folder. The Blackbook feeder process reads files from the queue folder and sends the data to Blackbook.</p>
+
+<h3><a name="AqueductDocumentation-1.2-Settingupthequeuefolder"></a>Setting up the queue folder</h3>
+
+<p>The siphon intake extension communicates with the Blackbook feeder through a queue folder where RDF files are placed. The queue folder must be local to the machine where the intake extension and the Blackbook feeder process are running (not on an NFS volume). This means that the Blackbook feeder process and the queue folder must be located on the same machine where the wiki is. (However, Blackbook itself can be running on a different machine.)</p>
+
+<p>To set up the queue folder, create a directory that can be read and written by both the Apache process (for Mediawiki) and the Blackbook feeder process.</p>
+
+<h3><a name="AqueductDocumentation-1.2-Settinguptheintakeextension"></a>Setting up the intake extension</h3>
+
+<ol>
+	<li>Copy the SiphonIntakeExtension directory to the "extensions" folder of your Mediawiki installation.</li>
+	<li>Make sure that Semantic Mediawiki is installed and fully functional</li>
+	<li>Add the following line to LocalSettings.php: $wgAutoloadClasses['SMWSiphonStore'] = "$IP/extensions/SiphonIntakeExtension/SMW_SiphonStore.php";</li>
+
+	<li>LocalSettings.php should already have a "enableSemantics" line from the Semantic Mediawiki installation. Ensure that you are passing appropriate parameters to the enableSemantics line so Semantic Mediawiki generates appropriate URIs for your semantic pages. The default settings often result in unexpectedly long and complicated URIs. A line similar to "enableSemantics('url:mywiki:',true);" will cause short URIs such as "url:mywiki:TestPage" to be generated, which may be what you want.</li>
+	<li>Add the following line to LocalSettings.php, substituting the queue folder that you set up: $wgSiphonQueueDirectory = '/var/myqueue';</li>
+	<li>Open the SMW_Settings.php file for your Semantic Mediawiki installation. You should see a line that says $smwgDefaultStore = "SMWSQLStore2"; . Change the "SMWSQLStore2" to "SMWSiphonStore".</li>
+	<li>Ensure that the namespaces that you want to use are in the  $smwgNamespacesWithSemanticLinks array in SMW_Settings.php. A common source of problems is forgetting to add a namespace to smwgNamespacesWithSemanticLinks when you create a namespace on the Aqueduct configuration special page and expect Siphon to pick up the semantic data.</li>
+	<li>Ensure that RAP is installed and included. To do this, download RAP to a directory accessible to the wiki and add something similar to the following to LocalSettings.php:</li>
+</ol>
+
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java">define('RDFAPI_INCLUDE_DIR', $IP.'/extensions/rdfapi-php/api/');
+include(RDFAPI_INCLUDE_DIR . <span class="code-quote">"RdfAPI.php"</span>);
+require_once(RDFAPI_INCLUDE_DIR . 'util/RdfUtil.php');
+include(RDFAPI_INCLUDE_DIR . PACKAGE_SYNTAX_RDF);</pre>
+</div></div>
+<p>Now, verify that make changes to semantic pages in the wiki causes files to appear in the queue directory. The files should contain the RDF for the semantic data that you added.</p>
+
+<h3><a name="AqueductDocumentation-1.2-SettingupBlackbook"></a>Setting up Blackbook</h3>
+
+<p>Create / Modify the target Data Source such that the following options are filled out in the Blackbook Metadata Manager under Modify Data Source/ Add Data Source page for the specific data source (refer to latest BB version documentation for in depth instructions of how to complete this stage):</p>
+<ul>
+	<li>Max merge docs: 1000 (this is sort of a magical number that you may have to modify but must be larger than Merger Factor)</li>
+
+	<li>Merge factor:	100 (like above this info may be found in Jena documentation or BB2 docs at a later stage)</li>
+	<li>Type: Assertions</li>
+</ul>
+
+
+<h3><a name="AqueductDocumentation-1.2-SettinguptheBlackbookfeeder%26nbsp%3B"></a>Setting up the Blackbook feeder&nbsp;</h3>
+
+<p>Put the BBSiphonFeeder folder in the directory of your choosing. Examples are /opt, /usr/local, or the users home directory.</p>
+
+<p>Ensure that the folder that will contain the rdf data to be ingested into Blackbook has permissions equal to the user that will set up this application.<br/>
+
+Run the bbSiphonStartupScript.sh script with the following command line arguments:<br/>
+./bbSiphonStartupScript.sh periodicity of execution of application(in seconds), fully qualified absolute filepath to bb2Feeder.php(do not use ~ or the like, not dependable), fully qualified absolute filepath to rdf folder, Blackbook server url, path to BB certificate file, BB Certificate Passphrase, path to User's public key file, fully qualified absolute filepath to rdf backup folder, blackbook version number (2 or 3).</p>
+
+<p>Note that there are two certificates required to use BB3 &#45;&#45; the BB certificate and the user's public key. The BB certificate should be in PEM format (you can use the same file that you used in Aqueduct for the BB Proxy certificate). The user's public key should be the certificate that you install in your web browser to use Aqueduct, converted to PEM (encoded into ASCII characters), and without the associated private key attached.</p>
+
+<p>If you are using BB2, the public key file is ignored, and can contain dummy content.&nbsp;</p>
+
+<p>One way to generate the public key file is to generate a test .php page that dumps the SERVER variables, and then add this test page to a web server running https. When you send the client certificate from your browser, the public key will show up in the SERVER variables.</p>
+
+<p>One common source of problems is having the wrong style of line breaks in the public key file. If the file has improper line break characters, Blackbook will fail to set the user, with a generic error message.</p>
+
+<h3><a name="AqueductDocumentation-1.2-Initializingthesemanticdata"></a>Initializing the semantic data</h3>
+
+<p>At first, any pre-existing semantic data will be missing from the Blackbook datasource. To resolve this, force the wiki to re-process all of the semantic data by going to the Admin Functions for Semantic MediaWiki page and starting the "Data repair and upgrade" function. This will start a Mediawiki job that will dump the semantic contents of the wiki into the queue. To force the process to complete more quickly, run the runJobs.php script from the maintenance folder of the Mediawiki installation.</p>
+
+<h3><a name="AqueductDocumentation-1.2-Operationofthesiphon"></a>Operation of the siphon</h3>
+
+<p>Because semantic data is placed in the queue directory for later consumption, it is okay to use the wiki while Blackbook or the Blackbook feeder is down. RDF files will accumulate in the queue directory, and will be processed when Blackbook comes back up.</p>
+
+<p>However, the presence of the queue in the Siphon system means that there will be a short lag time between editing the wiki and seeing the changes in Blackbook. Keep this in mind in applications where users or agents will be frequently reading and writing semantic data to the wiki.</p>
+
+<h3><a name="AqueductDocumentation-1.2-Usingmultiplequeuedirectories"></a>Using multiple queue directories</h3>
+
+<p>To send the data from one wiki to multiple Blackbook installations, use multiple queue directories, with one feeder process per Blackbook installation. Do not point multiple feeder processes at the same queue directory. To specify multiple queue directories in LocalSettings.php, use array() to set the $wgSiphonQueueDirectory variable to an array of queue directories instead of a string.</p>
+</body></html>

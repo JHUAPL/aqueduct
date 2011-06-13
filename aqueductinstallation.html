@@ -1,0 +1,38 @@
+<html><body>
+
+<h3><a name="AqueductDocumentation-1.2-InstallingtheAqueductextension%26nbsp%3B"></a>Installing the Aqueduct extension&nbsp;</h3>
+
+<p>Installing Aqueduct requires Mediawiki 1.14.0 or higher. Semantic Mediawiki is not required.</p>
+
+<p>1. Install Mediawiki and verify that it works</p>
+
+<p>2. Due to a Mediawiki bug (at least in 1.15.1), you need to modify a line in the Mediawiki source code. Load /path/to/wiki/includes/api/ApiFormatJson_json.php . On or around line 818, locate the following line:</p>
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java"><span class="code-keyword">if</span> (class_exists('pear')) {</pre>
+</div></div>
+<p>Change it to:</p>
+<div class="code panel" style="border-width: 1px;"><div class="codeContent panelContent">
+<pre class="code-java"><span class="code-keyword">if</span> (FALSE) {</pre>
+</div></div>
+
+<p>Failure to do this will cause extremely slow Mediawiki performance or timeouts when using the widgets or making API calls.&nbsp;</p>
+
+<p>3. Place the AqueductExtension folder in the extensions folder of your Mediawiki installation &#45;&#45; for example, /var/www/wiki/extensions/AqueductExtension. Note that the default location relative to Mediawiki must be used &#45;&#45; a directory called "extensions" must be in your mediawiki directory, and the AqueductExtension directory must be inside "extensions".</p>
+
+<p>4. Enable the extension by placing the following line at the bottom of your LocalSettings.php file: require_once( 'extensions/AqueductExtension/AqueductExtension.php' );</p>
+
+<p>5. There is a file called AqueductSQLTbl.sql in the AqueductExtension directory. Run this file against your wiki's MySQL database to generate the database tables.<br/>
+&nbsp;</p>
+
+<p>Aqueduct is now ready to configure. At this point, your wiki should be functional with no errors or unexpected behavior.</p>
+
+<h3><a name="AqueductDocumentation-1.2-Troubleshooting"></a>Troubleshooting</h3>
+
+<p>Misconfigurations can result in Aqueduct crashing and "Segmentation fault" appearing in your apache log file. Widgets failing with "Error 200" are another symptom of this problem. ("Error 200" often means that Apache crashed while performing the query, and the Segmentation Fault can be seen in the Apache log file.)</p>
+
+<p>If you are seeing segmentation faults, try the following troubleshooting steps:&nbsp;</p>
+<ol>
+	<li>Ensure that you are using the latest version of PHP. If you are using Aqueduct with Blackbook, ensure that you are using the latest version of Java. If you compile PHP yourself or supply your own OpenSSL library, ensure that the latest version of OpenSSL is being used as well. Aqueduct has been tested with Java 1.6.0_16, PHP 5.2.6, and OpenSSL 0.9.8g.</li>
+	<li>Ensure that apache is using the "prefork" MPM and not one of the threaded MPMs. PHP is not thread-safe and should not be used with a threaded MPM.</li>
+</ol>
+</body></html>
